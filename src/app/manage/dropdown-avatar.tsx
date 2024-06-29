@@ -10,13 +10,31 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useLogoutMutation } from '@/queries/useAuth';
+import { useRouter } from 'next/navigation';
+import { handleErrorApi } from '@/lib/utils';
 
 const account = {
-  name: 'Maverick',
+  name: 'Nguyễn Văn A',
   avatar: 'https://i.pravatar.cc/150',
 };
 
 export default function DropdownAvatar() {
+  const logoutMutation = useLogoutMutation();
+  const router = useRouter();
+
+  const logout = async () => {
+    if (logoutMutation.isPending) return;
+    try {
+      await logoutMutation.mutateAsync({
+        refreshToken: localStorage.getItem('refreshToken') as string,
+      });
+      router.push('/');
+    } catch (error) {
+      handleErrorApi({ error });
+    }
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -43,7 +61,7 @@ export default function DropdownAvatar() {
         </DropdownMenuItem>
         <DropdownMenuItem>Support</DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>Logout</DropdownMenuItem>
+        <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
