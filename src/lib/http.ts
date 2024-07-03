@@ -83,8 +83,8 @@ const request = async <Response>(
       baseHeaders.Authorization = `Bearer ${accessToken}`;
     }
   }
-  // Nếu không truyền baseUrl (hoặc baseUrl = undefined) thì lấy từ envConfig.NEXT_PUBLIC_API_ENDPOINT
-  // Nếu truyền baseUrl thì lấy giá trị truyền vào, truyền vào '' thì đồng nghĩa với việc chúng ta gọi API đến Next.js Server
+  // If baseUrl (or baseUrl = undefined) is not passed, get it from envConfig.NEXT_PUBLIC_API_ENDPOINT
+  // If baseUrl is passed, get the value passed in, passing '' means call the API to Next.js Server
   const baseUrl =
     options?.baseUrl === undefined
       ? envConfig.NEXT_PUBLIC_API_ENDPOINT
@@ -104,7 +104,7 @@ const request = async <Response>(
     status: res.status,
     payload,
   };
-  // Interceptor là nời chúng ta xử lý request và response trước khi trả về cho phía component
+  // Interceptor is where we process the request and response before returning to the component
   if (!res.ok) {
     if (res.status === ENTITY_ERROR_STATUS) {
       throw new EntityError(
@@ -130,14 +130,16 @@ const request = async <Response>(
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
             clientLogoutRequest = null;
-            // Redirect đến trang login có thể dẫn đến redirect loop vô hạn
-            // Nếu không được xử lý đúng cách
-            // Vì nếu rơi vào trường hợp mà tại trang login bạn có gọi api gì đó yêu cầu authentication
-            // thì lại bị lỗi và redirect về trang login, và cứ lặp lại như vậy
+            // Redirect to the login page may lead to an infinite redirect loop
+            // If not handled correctly
+            // Because if you are at the login page and you make any api call that requires authentication
+            // You will get an error and redirect back to the login page, and repeat infinitely
             location.href = '/login';
           }
         }
       } else {
+        // This is the case when we still have an accessToken (still valid)
+        // and we are calling the API from the Nextjs Server (router Handler, server component) to the server backend
         const accessToken = (options?.headers as any)?.Authorization.split(
           'Bearer '
         )[1];
@@ -147,7 +149,7 @@ const request = async <Response>(
       throw new HttpError(data);
     }
   }
-  // Đảm bảo logic dưới đây chỉ chạy ở phía client (browser)
+  // Make sure the logic below runs only on the client side (browser)
   if (isClient) {
     const normalizeUrl = normalizePath(url);
     if (normalizeUrl === 'api/auth/login') {
@@ -194,3 +196,4 @@ const http = {
 };
 
 export default http;
+
