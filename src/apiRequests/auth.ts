@@ -3,7 +3,7 @@ import {
   AccountResType,
   ChangePasswordBodyType,
 } from '@/schemaValidations/account.schema';
-import { LoginBodyType, LoginResType } from '@/schemaValidations/auth.schema';
+import { LoginBodyType, LoginResType, RefreshTokenBodyType, RefreshTokenResType } from '@/schemaValidations/auth.schema';
 import { MessageResType } from '@/schemaValidations/common.schema';
 import {
   GuestLoginBodyType,
@@ -50,6 +50,8 @@ const authApiRequest = {
     }),
   changePassword: (body: ChangePasswordBodyType) =>
     http.put<AccountResType>('/account/change-password', body),
+  sRefreshToken: (body: RefreshTokenBodyType) => http.post<RefreshTokenResType>('/auth/refresh-token', body),
+  refreshToken: () => http.post<RefreshTokenResType>('/api/auth/refresh-token', null, { baseUrl: '' }),
 };
 
 export default authApiRequest;
