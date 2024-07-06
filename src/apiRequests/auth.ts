@@ -11,6 +11,10 @@ import {
 } from '@/schemaValidations/guest.schema';
 
 const authApiRequest = {
+  refreshTokenRequest: null as Promise<{
+    status: number,
+    payload: RefreshTokenResType
+  }> | null,
   SGuestLogin: (body: GuestLoginBodyType) =>
     http.post<GuestLoginResType>('/guest/auth/login', body),
   guestLogin: (body: GuestLoginBodyType) =>
@@ -51,7 +55,14 @@ const authApiRequest = {
   changePassword: (body: ChangePasswordBodyType) =>
     http.put<AccountResType>('/account/change-password', body),
   sRefreshToken: (body: RefreshTokenBodyType) => http.post<RefreshTokenResType>('/auth/refresh-token', body),
-  refreshToken: () => http.post<RefreshTokenResType>('/api/auth/refresh-token', null, { baseUrl: '' }),
+  async refreshToken(){
+    // Prevent calling more than one times in a row
+    if(this.refreshTokenRequest) return this.refreshTokenRequest;
+    this.refreshTokenRequest = http.post<RefreshTokenResType>('/api/auth/refresh-token', null, { baseUrl: '' });
+    const result = await this.refreshTokenRequest;
+    this.refreshTokenRequest = null;
+    return result;
+  }
 };
 
 export default authApiRequest;
