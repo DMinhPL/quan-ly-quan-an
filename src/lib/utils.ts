@@ -5,6 +5,7 @@ import { EntityError } from "./http";
 import { toast } from "@/components/ui/use-toast";
 import jwt from 'jsonwebtoken';
 import authApiRequest from "@/apiRequests/auth";
+import { TokenPayload } from "@/types/jwt.types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -60,57 +61,45 @@ export const setAccessTokenToLocalStorage = (value: string) =>
 export const setRefreshTokenToLocalStorage = (value: string) =>
   isBrowser && localStorage.setItem("refreshToken", value);
 
-export const checkAndRefresh = async (params?: {
-  onError?: (timeout: any) => void;
-  onSuccess?: () => void;
-}) => {
-  const accessToken = getAccessTokenFromLocalStorage();
-  const refreshToken = getRefreshTokenFromLocalStorage();
-  if (!accessToken || !refreshToken) return;
+export const removeTokensFromLocalStorage = () => {
+  isBrowser && localStorage.removeItem('accessToken')
+  isBrowser && localStorage.removeItem('refreshToken')
+}
 
-  const decodedAccessToken = jwt.decode(accessToken) as {
-    exp: number;
-    iat: number;
-  };
-  const decodedRefreshToken = jwt.decode(refreshToken) as {
-    exp: number;
-    iat: number;
-  };
-
-  const now = Math.round(new Date().getTime() / 1000);
-
-  if (decodedRefreshToken.exp <= now) return;
-
-  const accessTokenLifespan = decodedAccessToken.exp - decodedAccessToken.iat;
-  const timeLeft = decodedAccessToken.exp - now;
-  const threshold = accessTokenLifespan / 3;
-
-  let timeout: any = null;
-
-  const scheduleRefresh = (delay: number) => {
-    if (timeout) clearTimeout(timeout);
-    timeout = setTimeout(checkAndRefresh, delay);
-  };
-
-  if (timeLeft <= threshold) {
-    try {
-      const res = await authApiRequest.refreshToken();
-      setAccessTokenToLocalStorage(res.payload.data.accessToken);
-      setRefreshTokenToLocalStorage(res.payload.data.refreshToken);
-
-      const newAccessToken = jwt.decode(res.payload.data.accessToken) as {
-        exp: number;
-        iat: number;
-      };
-      const newTimeLeft = newAccessToken.exp - Math.round(new Date().getTime() / 1000);
-      scheduleRefresh(newTimeLeft * 1000 / 3);
-      params?.onSuccess?.();
-    } catch (error) {
-      params?.onError?.(timeout);
-      console.error('Failed to refresh token:', error);
-      scheduleRefresh(1500); // Retry after 1.5 seconds in case of error
-    }
-  } else {
-    scheduleRefresh((timeLeft - threshold) * 1000);
+export const decodeToken = (token: string) => {
+  return jwt.decode(token) as TokenPayload
+}
+export const checkAndRefreshToken = async (param?: { onError?: () => void; onSuccess?: () => void }) => {
+  // Không nên đưa logic lấy access và refresh token ra khỏi cái function `checkAndRefreshToken`
+  // Vì để mỗi lần mà checkAndRefreshToken() được gọi thì chúng ta se có một access và refresh token mới
+  // Tránh hiện tượng bug nó lấy access và refresh token cũ ở lần đầu rồi gọi cho các lần tiếp theo
+  const accessToken = getAccessTokenFromLocalStorage()
+  const refreshToken = getRefreshTokenFromLocalStorage()
+  // Chưa đăng nhập thì cũng không cho chạy
+  if (!accessToken || !refreshToken) return
+  const decodedAccessToken = decodeToken(accessToken)
+  const decodedRefreshToken = decodeToken(refreshToken)
+  // Thời điểm hết hạn của token là tính theo epoch time (s)
+  // Còn khi các bạn dùng cú pháp new Date().getTime() thì nó sẽ trả về epoch time (ms)
+  const now = new Date().getTime() / 1000 - 1
+  // trường hợp refresh token hết hạn thì cho logout
+  if (decodedRefreshToken.exp <= now) {
+    removeTokensFromLocalStorage()
+    return param?.onError && param.onError()
   }
-};
+  // Ví dụ access token của chúng ta có thời gian hết hạn là 10s
+  // thì mình sẽ kiểm tra còn 1/3 thời gian (3s) thì mình sẽ cho refresh token lại
+  // Thời gian còn lại sẽ tính dựa trên công thức: decodedAccessToken.exp - now
+  // Thời gian hết hạn của access token dựa trên công thức: decodedAccessToken.exp - decodedAccessToken.iat
+  if (decodedAccessToken.exp - now < (decodedAccessToken.exp - decodedAccessToken.iat) / 3) {
+    // Gọi API refresh token
+    try {
+      const res = await authApiRequest.refreshToken()
+      setAccessTokenToLocalStorage(res.payload.data.accessToken)
+      setRefreshTokenToLocalStorage(res.payload.data.refreshToken)
+      param?.onSuccess && param.onSuccess()
+    } catch (error) {
+      param?.onError && param.onError()
+    }
+  }
+}

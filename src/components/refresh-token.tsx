@@ -1,13 +1,13 @@
 "use client";
 
 import {
-  checkAndRefresh,
+  checkAndRefreshToken,
   getAccessTokenFromLocalStorage,
   getRefreshTokenFromLocalStorage,
   setAccessTokenToLocalStorage,
   setRefreshTokenToLocalStorage,
 } from "@/lib/utils";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import jwt from "jsonwebtoken";
 import authApiRequest from "@/apiRequests/auth";
@@ -17,21 +17,31 @@ const UNAUTHENTICATED_PATH = ["/login", "/register", "refresh-token"];
 
 export default function RefreshToken() {
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     if (UNAUTHENTICATED_PATH.includes(pathname)) return;
-    let timeout: NodeJS.Timeout;
-    checkAndRefresh({
-      onError(tm) {
-        timeout = tm;
-        if (timeout) clearTimeout(timeout);
+    let interval: NodeJS.Timeout;
+    checkAndRefreshToken({
+      onError() {
+        if (interval) clearInterval(interval);
+        router.push('/login');
       }
     });
 
+    interval = setInterval(()=>{
+      checkAndRefreshToken({
+        onError() {
+          if (interval) clearInterval(interval);
+          router.push('/login');
+        }
+      });
+    },1000)
+
     return () => {
-      if (timeout) clearTimeout(timeout);
+      if (interval) clearInterval(interval);
     };
-  }, [pathname]);
+  }, [pathname, router]);
 
   return null;
 }
