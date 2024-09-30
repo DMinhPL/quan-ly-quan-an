@@ -25,10 +25,19 @@ const menuItems = [
     authRequired: true,
   },
 ];
+// !!!  React Hydration error Notes: https://nextjs.org/docs/messages/react-hydration-error  !!!
+// * Server: Initially renders the "Mon an" and "Dang nhap" menu because it doesn't know if the user is logged in.
+// * Client: Initially, it also renders "Mon an" and "Dang nhap". 
+//           Afterward, once it checks the user's login status (via localStorage), 
+//           it updates to display the full authenticated menu if the user is logged in.
 
 export default function NavItems({ className }: { className?: string }) {
   const [isAuth, setIsAuth] = useState(false);
 
+  /**
+   * How to fix: React Hydration error
+   * Using useEffect
+   */
   useEffect(() => {
     setIsAuth(Boolean(getAccessTokenFromLocalStorage()));
   }, [isAuth]);

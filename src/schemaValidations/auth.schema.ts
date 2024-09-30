@@ -22,7 +22,7 @@ export const LoginRes = z.object({
     })
   }),
   message: z.string()
-})
+});
 
 export type LoginResType = z.TypeOf<typeof LoginRes>
 
