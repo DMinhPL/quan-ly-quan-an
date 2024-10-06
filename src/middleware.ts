@@ -30,6 +30,8 @@ export function middleware(request: NextRequest) {
 }
 
 // See "Matching Paths" below to learn more
+// matcher allows you to filter Middleware to run on specific paths.
+
 export const config = {
   matcher: ['/login', '/manage/:path*'],
 };
