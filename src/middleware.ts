@@ -4,6 +4,7 @@ import type { NextRequest } from 'next/server';
 const privatePaths = ['/manage'];
 const unAuthPaths = ['/login'];
 
+// Router Caching: Middleware will invoked after each 30s
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const accessToken = request.cookies.get('accessToken')?.value;
