@@ -1,10 +1,14 @@
 'use client';
 
-import { getAccessTokenFromLocalStorage } from '@/lib/utils';
+import { useAppContext } from '@/components/app-provider';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
 
 const menuItems = [
+  {
+    title: 'Home',
+    href: '/',
+    authRequired: false,
+  },
   {
     title: 'Món ăn',
     href: '/menu',
@@ -32,15 +36,9 @@ const menuItems = [
 //           it updates to display the full authenticated menu if the user is logged in.
 
 export default function NavItems({ className }: { className?: string }) {
-  const [isAuth, setIsAuth] = useState(false);
+  const { isAuth } = useAppContext();
 
-  /**
-   * How to fix: React Hydration error
-   * Using useEffect
-   */
-  useEffect(() => {
-    setIsAuth(Boolean(getAccessTokenFromLocalStorage()));
-  }, [isAuth]);
+  console.log(isAuth);
 
   return menuItems.map((item) => {
     if (

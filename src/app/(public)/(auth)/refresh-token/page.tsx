@@ -15,13 +15,15 @@ const RefreshTokenPage = () => {
                     router.push(redirectPathname ?? '/');
                 }
             })
+        } else {
+            router.push('/')
         }
-       
+
     }, [router, refreshTokenFromUrl, redirectPathname])
 
     return (
         <div>
-            Page
+            Refresh Token
         </div>
     );
 };
