@@ -3,7 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import RefreshToken from "./refresh-token";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, Suspense, useContext, useEffect, useMemo, useState } from "react";
 import { getAccessTokenFromLocalStorage, removeTokensFromLocalStorage } from "@/lib/utils";
 
 // Create a client
@@ -46,12 +46,14 @@ export default function AppProvider({
   const value = useMemo(() => ({ isAuth, setIsAuth: onSetAuth }), [isAuth]);
 
   return (
-    <AppContext.Provider value={value}>
-      <QueryClientProvider client={queryClient}>
-        {children}
-        <RefreshToken />
-        <ReactQueryDevtools initialIsOpen={false} />
-      </QueryClientProvider>
-    </AppContext.Provider >
+    <Suspense fallback={<div>Loading...</div>}>
+      <AppContext.Provider value={value}>
+        <QueryClientProvider client={queryClient}>
+          {children}
+          <RefreshToken />
+          <ReactQueryDevtools initialIsOpen={false} />
+        </QueryClientProvider>
+      </AppContext.Provider >
+    </Suspense>
   );
 }
