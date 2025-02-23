@@ -97,7 +97,7 @@ export default function EditEmployee({
       })
       form.reset()
       onSubmitSuccess?.()
-      setId(undefined)
+      resetForm()
     }
     catch (error) {
       handleErrorApi({
@@ -106,12 +106,19 @@ export default function EditEmployee({
       })
     }
   }
+
+  const resetForm = () => {
+    form.reset()
+    setId(undefined)
+    setFile(null)
+  }
+
   return (
     <Dialog
       open={Boolean(id)}
       onOpenChange={(value) => {
         if (!value) {
-          setId(undefined)
+          resetForm()
         }
       }}
     >

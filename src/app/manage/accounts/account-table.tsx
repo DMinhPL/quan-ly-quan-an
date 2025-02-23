@@ -137,7 +137,7 @@ function AlertDialogDeleteAccount({
 }) {
   const { mutateAsync } = useDeleteAccountMutation()
 
-  const deleteAccoutn = async () => {
+  const deleteAccount = async () => {
     if (employeeDelete) {
       try {
         const result = await mutateAsync(employeeDelete.id)
@@ -171,7 +171,7 @@ function AlertDialogDeleteAccount({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={deleteAccoutn}>Continue</AlertDialogAction>
+          <AlertDialogAction onClick={deleteAccount}>Continue</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
