@@ -14,12 +14,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { toast } from '@/components/ui/use-toast'
 import { DishStatus, DishStatusValues } from '@/constants/type'
-import { getVietnameseDishStatus } from '@/lib/utils'
+import { getVietnameseDishStatus, handleErrorApi } from '@/lib/utils'
+import { useGetDetailDishQuery, useUpdateDishMutation } from '@/queries/useDish'
+import { useUploadMediaMutation } from '@/queries/useMedia'
 import { UpdateDishBody, UpdateDishBodyType } from '@/schemaValidations/dish.schema'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Upload } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 
 export default function EditDish({
@@ -33,6 +36,9 @@ export default function EditDish({
 }) {
   const [file, setFile] = useState<File | null>(null)
   const imageInputRef = useRef<HTMLInputElement | null>(null)
+  const { data } = useGetDetailDishQuery({ id: id as number, enabled: Boolean(id) })
+  const editDishMutation = useUpdateDishMutation()
+  const uploadMediaMutation = useUploadMediaMutation()
   const form = useForm<UpdateDishBodyType>({
     resolver: zodResolver(UpdateDishBody),
     defaultValues: {
@@ -51,12 +57,53 @@ export default function EditDish({
     }
     return image
   }, [file, image])
+
+  useEffect(() => {
+    if (data) {
+      const { name, description, price, image, status } = data.payload.data
+      form.reset({
+        name,
+        description,
+        price,
+        image: image ?? undefined,
+        status
+      })
+    }
+  }, [data, form])
+
+  const onReset = () => {
+    setId(undefined)
+    setFile(null)
+    form.reset()
+  }
+
+  const onSubmit = async (values: UpdateDishBodyType) => {
+    if (editDishMutation.isPending) return
+    try {
+      let body: UpdateDishBodyType & { id: number } = { id: id as number, ...values }
+      if (file) {
+        const fData = new FormData()
+        fData.append('file', file)
+        const uploadMediaResult = await uploadMediaMutation.mutateAsync(fData)
+        body = { ...body, image: uploadMediaResult.payload.data }
+      }
+      const result = await editDishMutation.mutateAsync(body)
+      toast({
+        description: result.payload.message
+      })
+      onSubmitSuccess?.()
+      onReset()
+    } catch (error) {
+      handleErrorApi({ error, setError: form.setError })
+    }
+  }
+
   return (
     <Dialog
       open={Boolean(id)}
       onOpenChange={(value) => {
         if (!value) {
-          setId(undefined)
+          onReset()
         }
       }}
     >
@@ -66,7 +113,12 @@ export default function EditDish({
           <DialogDescription>Các trường sau đây là bắ buộc: Tên, ảnh</DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form noValidate className='grid auto-rows-max items-start gap-4 md:gap-8' id='edit-dish-form'>
+          <form
+            onSubmit={form.handleSubmit(onSubmit, (e) => {
+              console.log('Update failed: ', e)
+            })}
+            noValidate
+            className='grid auto-rows-max items-start gap-4 md:gap-8' id='edit-dish-form'>
             <div className='grid gap-4 py-4'>
               <FormField
                 control={form.control}

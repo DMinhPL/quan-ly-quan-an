@@ -37,12 +37,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '@/components/ui/alert-dialog'
-import { formatCurrency, getVietnameseDishStatus } from '@/lib/utils'
+import { formatCurrency, getVietnameseDishStatus, handleErrorApi } from '@/lib/utils'
 import { useSearchParams } from 'next/navigation'
 import AutoPagination from '@/components/auto-pagination'
 import { DishListResType } from '@/schemaValidations/dish.schema'
 import EditDish from '@/app/manage/dishes/edit-dish'
 import AddDish from '@/app/manage/dishes/add-dish'
+import { useDeleteDishMutation, useDishes } from '@/queries/useDish'
+import { toast } from '@/components/ui/use-toast'
 
 type DishItem = DishListResType['data'][0]
 
@@ -52,16 +54,17 @@ const DishTableContext = createContext<{
   dishDelete: DishItem | null
   setDishDelete: (value: DishItem | null) => void
 }>({
-  setDishIdEdit: (value: number | undefined) => {},
+  setDishIdEdit: (value: number | undefined) => { },
   dishIdEdit: undefined,
   dishDelete: null,
-  setDishDelete: (value: DishItem | null) => {}
+  setDishDelete: (value: DishItem | null) => { }
 })
 
 export const columns: ColumnDef<DishItem>[] = [
   {
-    accessorKey: 'id',
-    header: 'ID'
+    id: 'stt',
+    header: 'STT',
+    cell: ({ row }) => <div>{row.index + 1}</div>
   },
   {
     accessorKey: 'image',
@@ -89,8 +92,22 @@ export const columns: ColumnDef<DishItem>[] = [
     accessorKey: 'description',
     header: 'Mô tả',
     cell: ({ row }) => (
-      <div dangerouslySetInnerHTML={{ __html: row.getValue('description') }} className='whitespace-pre-line' />
-    )
+      <div
+        style={{
+          maxWidth: "300px",
+          display: "-webkit-box",
+          WebkitLineClamp: 2, // Limit to 2 lines
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "normal",
+        }}
+        title={row.getValue('description')}
+        dangerouslySetInnerHTML={{ __html: row.getValue('description') }}
+        className='whitespace-pre-line' />
+    ),
+    maxSize: 200,
+    size: 200,
   },
   {
     accessorKey: 'status',
@@ -136,6 +153,23 @@ function AlertDialogDeleteDish({
   dishDelete: DishItem | null
   setDishDelete: (value: DishItem | null) => void
 }) {
+
+  const { mutateAsync } = useDeleteDishMutation()
+  const onDeleteDish = async () => {
+    if (dishDelete) {
+      try {
+        const result = await mutateAsync(dishDelete.id)
+        setDishDelete(null)
+        toast({
+          title: 'Xóa món ăn',
+          description: result.payload.message
+        })
+      } catch (error) {
+        handleErrorApi({ error })
+      }
+    }
+  }
+
   return (
     <AlertDialog
       open={Boolean(dishDelete)}
@@ -155,7 +189,7 @@ function AlertDialogDeleteDish({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction>Continue</AlertDialogAction>
+          <AlertDialogAction onClick={onDeleteDish}>Continue</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -164,12 +198,16 @@ function AlertDialogDeleteDish({
 // Số lượng item trên 1 trang
 const PAGE_SIZE = 10
 export default function DishTable() {
+  // Hooks 
+  const dishListQuery = useDishes()
+
+  // State 
   const searchParam = useSearchParams()
   const page = searchParam.get('page') ? Number(searchParam.get('page')) : 1
   const pageIndex = page - 1
   const [dishIdEdit, setDishIdEdit] = useState<number | undefined>()
   const [dishDelete, setDishDelete] = useState<DishItem | null>(null)
-  const data: any[] = []
+  const data: any[] = dishListQuery.data?.payload.data ?? []
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
