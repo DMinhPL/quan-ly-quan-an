@@ -121,7 +121,7 @@ export default function UpdateProfileForm() {
                             setFile(file);
                             form.setValue('avatar', file.name);
                             field.onChange(
-                              'http://localhost:3000/' + file.name
+                              'http://localhost:3002/' + file.name
                             );
                           }
                         }}
